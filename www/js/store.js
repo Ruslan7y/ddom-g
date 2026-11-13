@@ -75,6 +75,7 @@ function defaults() {
     ach: {},
     lastMode: 2, lastDiff: 'easy',
     seenTip: false,
+    stages: {}, stageMax: 1, mapAnim: 0,
   };
 }
 
@@ -85,7 +86,7 @@ function load() {
     if (raw) {
       const d = defaults();
       const p = JSON.parse(raw);
-      return { ...d, ...p, owned: { ...d.owned, ...(p.owned || {}) }, stats: { ...d.stats, ...(p.stats || {}) } };
+      return { ...d, ...p, stages: { ...(p.stages || {}) }, owned: { ...d.owned, ...(p.owned || {}) }, stats: { ...d.stats, ...(p.stats || {}) } };
     }
   } catch (e) { /* yoksay */ }
   return defaults();
@@ -182,4 +183,28 @@ export function applyMatchResult(r) {
   for (const e of r.events || []) unlock(e);
   save();
   return { xp, coins, levelUps, rankUp: newRank > oldRank ? newRank : -1, newAch };
+}
+
+// --- Kariyer haritası (aşamalar)
+function addXP(xp) {
+  const oldRank = rankOf(P.level);
+  P.xp += xp;
+  let levelUps = 0;
+  while (P.xp >= xpForLevel(P.level)) { P.xp -= xpForLevel(P.level); P.level++; levelUps++; }
+  const newRank = rankOf(P.level);
+  return { levelUps, rankUp: newRank > oldRank ? newRank : -1 };
+}
+/** Aşama sonucu kaydet. Döner: {xp, coins, first, improved, levelUps, rankUp} */
+export function applyStageResult(cfg, success, stars) {
+  if (!success) { save(); return { xp: 5, coins: 0, ...addXP(5) }; }
+  const prev = P.stages[cfg.i] || 0;
+  const first = prev === 0;
+  let xp = first ? cfg.reward.xp : 10;
+  let coins = first ? cfg.reward.coins : 0;
+  if (stars > prev) { coins += (stars - prev) * 10; P.stages[cfg.i] = stars; }
+  if (first && cfg.i >= P.stageMax) { P.stageMax = cfg.i + 1; P.mapAnim = cfg.i + 1; }
+  P.coins += coins;
+  const lv = addXP(xp);
+  save();
+  return { xp, coins, first, improved: stars > prev, ...lv };
 }

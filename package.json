@@ -1,11 +1,11 @@
 {
   "name": "domino-101-real-table",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Domino 101: Real Table",
   "scripts": {
     "sync": "cap sync android",
-    "test": "node tests/engine.test.mjs"
+    "test": "node tests/engine.test.mjs && node tests/levels.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",

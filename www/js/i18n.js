@@ -9,6 +9,17 @@ export const LANGS = [
 const S = {
   tr: {
     subtitle: 'Real Table',
+    tab_map: 'Harita', tab_match: '101 Maç', stage: 'Aşama', stage_n: 'Aşama {n}',
+    goal_win: 'Eli kazan', goal_points: 'Eli en az {n} puanla kazan', goal_domino: 'Taşlarını ilk sen bitir', goal_series: '3 elden 2\'sini kazan',
+    goal: 'Hedef', opponent: 'Rakip', boss: 'Bölüm sonu', start: 'Başla',
+    stars_hint: '★★ {a}+ puan · ★★★ {b}+ puan',
+    level_done: 'Aşama tamamlandı!', level_fail: 'Olmadı, tekrar dene', retry: 'Tekrar dene', next_stage: 'Sonraki aşama', to_map: 'Haritaya dön',
+    series_score: 'Seri {a} : {b}', dealing: 'Taşlar karıştırılıyor…', hand_ok: 'Hedef tamam!', hand_no: 'Hedefe ulaşılamadı',
+    tip_win: 'Açık uçlardan birine uyan taşı koy. Elini ilk bitiren ya da bağlı oyunda az puanla kalan kazanır.',
+    tip_points: 'Puan, rakibin elinde kalan taşların toplamıdır. Ağır taşlarını erken oyna, rakibi büyük taşlarla bırak.',
+    tip_domino: 'Elindeki sayıları çeşitli tut ki her uca cevap verebilesin. Çiftelerini erken kurtar.',
+    tip_series: 'Bir el kaybetsen de olur — 3 elden 2\'sini almak yeter.',
+    tip_team: 'Ortağın karşında oturur. Onun oynayabileceği uçları açık bırak, rakiplerin pas geçtiği sayıları kapat.',
     finished: '{name} bitirdi!', finished_you: 'Bitirdin!', tie_title: 'Eşitlik',
     welcome: 'Hoş geldin',
     welcome_sub: 'Gerçek domino masasına otur',
@@ -117,6 +128,17 @@ const S = {
   },
   az: {
     subtitle: 'Real Table',
+    tab_map: 'Xəritə', tab_match: '101 Matç', stage: 'Mərhələ', stage_n: 'Mərhələ {n}',
+    goal_win: 'Əli qazan', goal_points: 'Əli ən azı {n} xalla qazan', goal_domino: 'Daşlarını ilk sən bitir', goal_series: '3 əldən 2-sini qazan',
+    goal: 'Hədəf', opponent: 'Rəqib', boss: 'Fəslin sonu', start: 'Başla',
+    stars_hint: '★★ {a}+ xal · ★★★ {b}+ xal',
+    level_done: 'Mərhələ tamamlandı!', level_fail: 'Alınmadı, yenidən cəhd et', retry: 'Yenidən', next_stage: 'Növbəti mərhələ', to_map: 'Xəritəyə qayıt',
+    series_score: 'Seriya {a} : {b}', dealing: 'Daşlar qarışdırılır…', hand_ok: 'Hədəf tamam!', hand_no: 'Hədəfə çatılmadı',
+    tip_win: 'Açıq uclardan birinə uyğun daşı qoy. Əlini ilk bitirən və ya bağlı oyunda az xalla qalan qazanır.',
+    tip_points: 'Xal rəqibin əlində qalan daşların cəmidir. Ağır daşlarını tez oyna, rəqibi böyük daşlarla saxla.',
+    tip_domino: 'Əlindəki rəqəmləri müxtəlif saxla ki, hər uca cavab verə biləsən. Qoşalarını tez xilas et.',
+    tip_series: 'Bir əli uduzsan da olar — 3 əldən 2-sini almaq kifayətdir.',
+    tip_team: 'Ortağın qarşında oturur. Onun oynaya biləcəyi ucları açıq saxla, rəqiblərin pas verdiyi rəqəmləri bağla.',
     finished: '{name} bitirdi!', finished_you: 'Bitirdin!', tie_title: 'Bərabərlik',
     welcome: 'Xoş gəldin',
     welcome_sub: 'Əsl domino masasına otur',
@@ -225,6 +247,17 @@ const S = {
   },
   en: {
     subtitle: 'Real Table',
+    tab_map: 'Map', tab_match: '101 Match', stage: 'Stage', stage_n: 'Stage {n}',
+    goal_win: 'Win the hand', goal_points: 'Win the hand with at least {n} points', goal_domino: 'Be the first to play all your tiles', goal_series: 'Win 2 of 3 hands',
+    goal: 'Goal', opponent: 'Opponent', boss: 'Chapter boss', start: 'Start',
+    stars_hint: '★★ {a}+ pts · ★★★ {b}+ pts',
+    level_done: 'Stage complete!', level_fail: 'Not this time — try again', retry: 'Retry', next_stage: 'Next stage', to_map: 'Back to map',
+    series_score: 'Series {a} : {b}', dealing: 'Shuffling tiles…', hand_ok: 'Goal reached!', hand_no: 'Goal missed',
+    tip_win: 'Play a tile that matches an open end. Whoever goes out first — or holds fewer pips in a blocked game — wins.',
+    tip_points: 'Points are the pips left in your opponents\' hands. Play your heavy tiles early and leave them holding big ones.',
+    tip_domino: 'Keep a variety of numbers so you can answer every end. Get rid of your doubles early.',
+    tip_series: 'Losing one hand is fine — winning 2 of 3 is enough.',
+    tip_team: 'Your partner sits across. Keep ends open for them and close numbers your opponents passed on.',
     finished: '{name} is out!', finished_you: 'You are out!', tie_title: 'Tie',
     welcome: 'Welcome',
     welcome_sub: 'Take a seat at a real domino table',
@@ -333,6 +366,17 @@ const S = {
   },
   ru: {
     subtitle: 'Real Table',
+    tab_map: 'Карта', tab_match: 'Матч 101', stage: 'Этап', stage_n: 'Этап {n}',
+    goal_win: 'Выиграй раздачу', goal_points: 'Выиграй раздачу минимум на {n} очков', goal_domino: 'Первым выложи все костяшки', goal_series: 'Выиграй 2 раздачи из 3',
+    goal: 'Цель', opponent: 'Соперник', boss: 'Финал главы', start: 'Начать',
+    stars_hint: '★★ {a}+ очков · ★★★ {b}+ очков',
+    level_done: 'Этап пройден!', level_fail: 'Не вышло — попробуй ещё', retry: 'Ещё раз', next_stage: 'Следующий этап', to_map: 'К карте',
+    series_score: 'Серия {a} : {b}', dealing: 'Костяшки перемешиваются…', hand_ok: 'Цель выполнена!', hand_no: 'Цель не выполнена',
+    tip_win: 'Ставь костяшку, подходящую к открытому концу. Побеждает тот, кто первым выложит все, или у кого меньше очков при «рыбе».',
+    tip_points: 'Очки — это сумма костяшек в руках соперников. Сбрасывай тяжёлые костяшки раньше и оставляй соперникам крупные.',
+    tip_domino: 'Держи разные числа, чтобы отвечать на любой конец. Избавляйся от дублей пораньше.',
+    tip_series: 'Можно проиграть одну раздачу — достаточно выиграть 2 из 3.',
+    tip_team: 'Партнёр сидит напротив. Оставляй ему открытые концы и закрывай числа, на которых соперники пасовали.',
     finished: '{name} закончил(а)!', finished_you: 'Ты закончил!', tie_title: 'Ничья',
     welcome: 'Добро пожаловать',
     welcome_sub: 'Садись за настоящий доминошный стол',
@@ -447,6 +491,15 @@ const RANKS = {
   en: ['Newcomer', 'Amateur', 'Apprentice', 'Player', 'Experienced', 'Candidate Master', 'Master', 'Senior Master', 'Maestro', 'Grandmaster', 'Champion', 'Grand Champion', 'Legend', 'Immortal Legend', 'Domino King'],
   ru: ['Новичок', 'Любитель', 'Ученик', 'Игрок', 'Опытный', 'Кандидат в мастера', 'Мастер', 'Старший мастер', 'Наставник', 'Гроссмейстер', 'Чемпион', 'Великий чемпион', 'Легенда', 'Бессмертная легенда', 'Король домино'],
 };
+
+const CHAPTERS = {
+  tr: ['Mahalle', 'Kıraathane', 'Sahil', 'Kulüp', 'Turnuva', 'Saray'],
+  az: ['Məhəllə', 'Çayxana', 'Bulvar', 'Klub', 'Turnir', 'Saray'],
+  en: ['Neighbourhood', 'Tea House', 'Boulevard', 'Club', 'Tournament', 'Palace'],
+  ru: ['Двор', 'Чайхана', 'Бульвар', 'Клуб', 'Турнир', 'Дворец'],
+};
+const ROMAN = ['', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII', ' IX', ' X'];
+export const chapterName = ch => CHAPTERS[lang][ch % 6] + (ROMAN[Math.floor(ch / 6)] ?? ' ' + (Math.floor(ch / 6) + 1));
 
 const ACH = {
   first_win: { tr: ['İlk zafer', 'İlk maçını kazan'], az: ['İlk qələbə', 'İlk matçını qazan'], en: ['First victory', 'Win your first match'], ru: ['Первая победа', 'Выиграй первый матч'] },

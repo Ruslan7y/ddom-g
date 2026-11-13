@@ -99,7 +99,7 @@ function sampleWorld(match, p, unk, rng, useVoids) {
 }
 
 /** Hızlı el simülasyonu. Döner: p'nin tarafı açısından puan farkı. */
-function simulate(match, world, p, first, rng) {
+export function simulate(match, world, p, first, rng) {
   const n = match.n;
   const hands = world.hands.map(h => [...h]);
   const bone = [...world.boneyard];

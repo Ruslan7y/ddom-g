@@ -1,5 +1,6 @@
 // Domino 101: Real Table — uygulama ve ekranlar
-import { t, setLang, getLang, detectLang, LANGS, rankName, achText, itemName, ACH_IDS } from './i18n.js';
+import { t, setLang, getLang, detectLang, LANGS, rankName, achText, itemName, ACH_IDS, chapterName } from './i18n.js';
+import { stageConfig, fairDeal, handMeetsGoal, starsFor } from './levels.js';
 import * as store from './store.js';
 import { AVATARS, THEMES, TILE_STYLES, DIFFS, RANK_LEVELS, rankOf, xpForLevel } from './store.js';
 import { Match, TILES, hasNum, idOf, isDouble } from './engine.js';
@@ -8,7 +9,7 @@ import { renderBoard, tileSVG, backSVG, ghostFor, boardMetrics } from './render.
 import { runSplash } from './splash.js';
 import { sfx, vibrate } from './sound.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -191,7 +192,94 @@ function showMain(which = tab) {
   ({ play: renderPlay, online: renderOnline, trophy: renderTrophy, settings: renderSettings })[tab](c);
 }
 
+let playTab = 'map';
 function renderPlay(c) {
+  c.innerHTML = `<div class="seg play-seg">${['map', 'match'].map(k => `<button class="${k === playTab ? 'on' : ''}" data-pt="${k}">${t('tab_' + k)}</button>`).join('')}</div><div class="pt-body"></div>`;
+  $$('[data-pt]', c).forEach(b => b.onclick = () => { sfx.tap(); playTab = b.dataset.pt; renderPlay(c); });
+  const body = $('.pt-body', c);
+  c.classList.toggle('map-mode', playTab === 'map');
+  if (playTab === 'map') renderMap(body, c); else renderMatch(body);
+}
+
+// ---------- Kariyer haritası
+const DIFF_ICON = { easy: '🙂', medium: '😐', hard: '😠', expert: '😈' };
+function goalText(cfg) {
+  return cfg.goal === 'points' ? t('goal_points', { n: cfg.target }) : t('goal_' + cfg.goal);
+}
+function renderMap(body, scroller) {
+  const p = P();
+  const max = p.stageMax;
+  const total = Math.max(max + 9, 20);
+  const SP = 108;
+  const H = total * SP + 150;
+  const totalStars = Object.values(p.stages).reduce((a, b) => a + b, 0);
+  body.innerHTML = `<div class="map-bar"><span>🗺️ ${t('stage_n', { n: Math.min(max, total) })}</span><span class="stars-total">★ ${totalStars}</span></div><div class="map" style="height:${H}px"><svg class="map-path"></svg></div>`;
+  const map = $('.map', body);
+  const W = map.clientWidth || 360;
+  const pos = i => ({ x: W * (0.5 + Math.sin(i * 1.15) * 0.3), y: H - 80 - (i - 1) * SP });
+  // Bölüm bantları
+  let bands = '';
+  for (let ch = 0; ch * 10 < total; ch++) {
+    const top = pos(ch * 10 + 10).y - SP / 2, bottom = pos(ch * 10 + 1).y + SP / 2 + (ch === 0 ? 60 : 0);
+    bands += `<div class="map-band ch${ch % 6}" style="top:${top}px;height:${bottom - top}px"><div class="band-title">${ch + 1}. ${chapterName(ch)}</div></div>`;
+  }
+  map.insertAdjacentHTML('afterbegin', bands);
+  // Yol
+  const pts = Array.from({ length: total }, (_, k) => pos(k + 1));
+  const seg = (a, b) => `C ${a.x.toFixed(1)} ${((a.y + b.y) / 2).toFixed(1)} ${b.x.toFixed(1)} ${((a.y + b.y) / 2).toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+  let dAll = `M ${pts[0].x} ${pts[0].y}`, dDone = dAll;
+  for (let k = 1; k < pts.length; k++) { dAll += ' ' + seg(pts[k - 1], pts[k]); if (k < max) dDone += ' ' + seg(pts[k - 1], pts[k]); }
+  const svg = $('.map-path', body);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = `<path d="${dAll}" class="mp-all"/><path d="${dDone}" class="mp-done"/>`;
+  // Düğümler
+  let nodes = '';
+  for (let i = 1; i <= total; i++) {
+    const cfg = stageConfig(i);
+    const { x, y } = pos(i);
+    const st = p.stages[i] || 0;
+    const state = i < max || st ? 'done' : i === max ? 'cur' : 'locked';
+    const stars = state === 'done' ? `<div class="n-stars">${[1, 2, 3].map(k => `<i class="${k <= st ? 'on' : ''}">★</i>`).join('')}</div>` : '';
+    const inner = state === 'locked' ? '🔒' : cfg.boss ? '👑' : i;
+    const extra = cfg.mode === 4 && state !== 'locked' ? '<span class="n-team">2v2</span>' : '';
+    const me = state === 'cur' ? `<div class="n-me">${avatarHTML(p.avatar, 'xs')}</div>` : '';
+    nodes += `<button class="node ${state} ${cfg.boss ? 'boss' : ''} ${p.mapAnim === i ? 'unlock' : ''}" data-stage="${i}" style="left:${x}px;top:${y}px">${me}<span class="n-num">${inner}</span>${extra}${stars}</button>`;
+  }
+  map.insertAdjacentHTML('beforeend', nodes);
+  $$('.node', map).forEach(b => b.onclick = () => {
+    const i = +b.dataset.stage;
+    if (b.classList.contains('locked')) { sfx.tap(); toast('🔒 ' + t('stage_n', { n: i })); return; }
+    sfx.tap(); stageIntro(i);
+  });
+  // Mevcut aşamaya kaydır; yeni açıldıysa yukarı doğru animasyon
+  const target = pos(Math.min(max, total)).y;
+  const center = y => Math.max(0, y + body.offsetTop - scroller.clientHeight / 2);
+  if (p.mapAnim) {
+    scroller.scrollTop = center(pos(Math.max(1, p.mapAnim - 1)).y);
+    store.update({ mapAnim: 0 });
+    setTimeout(() => { scroller.scrollTo({ top: center(target), behavior: 'smooth' }); sfx.win(); }, 450);
+    setTimeout(() => { if (scroller.isConnected && $('.node.cur', scroller)) stageIntro(max); }, 1900);
+  } else scroller.scrollTop = center(target);
+}
+
+async function stageIntro(i) {
+  const cfg = stageConfig(i);
+  const st = P().stages[i] || 0;
+  const tip = cfg.mode === 4 ? t('tip_team') : t('tip_' + (cfg.goal === 'series' ? 'series' : cfg.goal));
+  const body = `
+    ${cfg.boss ? `<div class="boss-tag">👑 ${t('boss')}</div>` : ''}
+    <div class="si-ch">${cfg.ch + 1}. ${chapterName(cfg.ch)}</div>
+    <div class="si-stars">${[1, 2, 3].map(k => `<i class="${k <= st ? 'on' : ''}">★</i>`).join('')}</div>
+    <div class="si-goal"><small>${t('goal')}</small><b>${goalText(cfg)}</b></div>
+    <div class="si-info"><span>${cfg.mode === 4 ? '👥 ' + t('mode_2v2') : '👤 ' + t('mode_1v1')}</span><span>${DIFF_ICON[cfg.bot]} ${t('opponent')}: ${t('diff_' + cfg.bot)}</span></div>
+    <p class="muted small">${t('stars_hint', { a: cfg.star2, b: cfg.star3 })}</p>
+    <div class="si-tip">💡 ${tip}</div>
+    <div class="si-reward">+${cfg.reward.xp} XP · +${cfg.reward.coins} <span class="coin"></span></div>`;
+  const v = await modal({ title: t('stage_n', { n: i }), body, cls: 'stage-intro', dismiss: true, buttons: [{ label: t('cancel'), value: false }, { label: t('start'), value: true, cls: 'primary' }] });
+  if (v) new GameCtl(cfg.mode, cfg.bot, cfg).start();
+}
+
+function renderMatch(c) {
   const p = P();
   const r = rankOf(p.level);
   let mode = p.lastMode || 2;
@@ -329,16 +417,17 @@ function renderSettings(c) {
 
 // ---------- Oyun
 class GameCtl {
-  constructor(mode, diff) {
-    this.mode = mode; this.diff = diff;
+  constructor(mode, diff, stage = null) {
+    this.mode = mode; this.diff = diff; this.stage = stage;
     const p = P();
     const names = store.botNames(mode - 1, p.nick);
     const avs = [...store.BOT_AVATARS].sort(() => Math.random() - 0.5).filter(a => a !== p.avatar);
     this.players = [{ name: p.nick, avatar: p.avatar, bot: false }];
-    for (let i = 1; i < mode; i++) this.players.push({ name: names[i - 1], avatar: avs[i - 1], bot: true });
+    // Her botun kendine özgü bir hızı var (ortalama ~3 sn)
+    for (let i = 1; i < mode; i++) this.players.push({ name: names[i - 1], avatar: avs[i - 1], bot: true, speed: 2200 + Math.random() * 1700 });
     this.match = new Match(this.players);
     this.alive = true;
-    this.handsWon = 0; this.gamesWon = 0; this.events = new Set();
+    this.handsWon = 0; this.gamesWon = 0; this.events = new Set(); this.series = [0, 0];
     this.selected = null;
     this.newId = null;
     this.waiting = null; // insan hamlesi bekleniyor
@@ -411,21 +500,90 @@ class GameCtl {
     const v = await modal({ title: t('leave_title'), body: `<p>${t('leave_confirm')}</p>`, buttons: [{ label: t('stay'), value: false, cls: 'primary' }, { label: t('leave'), value: true, cls: 'danger' }] });
     if (!v) return;
     this.destroy();
-    const s = P().stats; s.matches++; s.streak = 0; store.save();
+    if (!this.stage) { const s = P().stats; s.matches++; s.streak = 0; store.save(); }
     showMain('play');
   }
 
   gtoast(msg, ms = 1700) { if (this.alive) toast(msg, ms, this.root); }
 
-  delay(kind = 'bot') {
+  delay(kind = 'bot', p = -1) {
     const fast = P().botSpeed === 'fast';
+    if (kind === 'bot' && p > 0) {
+      let ms = this.players[p].speed * (0.8 + Math.random() * 0.4);
+      if (this.match.legalMoves(p).length <= 1) ms *= 0.7; // tek seçenek: daha çabuk
+      return sleep(fast ? ms * 0.5 : ms);
+    }
     // Normal: bot 5–6 sn düşünür; Hızlı: 2–2.5 sn
     const [lo, hi] = kind === 'bot' ? (fast ? [2000, 2500] : [5000, 6000]) : (fast ? [800, 1000] : [1500, 1800]);
     return sleep(lo + Math.random() * (hi - lo));
   }
 
   // ---- Akış
+  async playHand() {
+    let res = null;
+    while (this.alive && !res) {
+      this.render();
+      const p = this.match.turn;
+      res = p === 0 ? await this.humanTurn() : await this.botTurn(p);
+    }
+    if (!this.alive) return null;
+    this.render();
+    await sleep(900);
+    return res;
+  }
+
+  async runStage() {
+    const cfg = this.stage;
+    const need = cfg.goal === 'series' ? 2 : 1;
+    this.series = [0, 0];
+    let total = 0, best = 0, success = false, first = true;
+    while (this.alive) {
+      this.match = new Match(this.players);
+      this.gtoast(t('dealing'), 900);
+      await sleep(60);
+      fairDeal(this.match, cfg);
+      this.selected = null; this.newId = null; this.lastId = null; this.fresh = null;
+      this.render();
+      if (first) { first = false; await sleep(400); this.gtoast(goalText(cfg), 2600); }
+      const res = await this.playHand();
+      if (!res) return;
+      await this.announce(res);
+      if (!this.alive) return;
+      const ok = !res.tie && handMeetsGoal(cfg, res);
+      if (!res.tie) { if (ok) { this.series[0]++; total += res.gained; best = Math.max(best, res.gained); } else this.series[1]++; }
+      if (res.winnerSide === 0) this.handsWon++;
+      await this.showHandResult(res, { ok });
+      if (!this.alive) return;
+      if (this.series[0] >= need) { success = true; break; }
+      if (res.tie) continue;
+      if (cfg.goal !== 'series' || this.series[1] >= 2) break;
+    }
+    const stars = success ? starsFor(cfg, cfg.goal === 'series' ? total : best) : 0;
+    await this.showStageEnd(success, stars);
+  }
+
+  async showStageEnd(success, stars) {
+    const cfg = this.stage;
+    const res = store.applyStageResult(cfg, success, stars);
+    success ? sfx.win() : sfx.lose();
+    const p = P();
+    const body = `
+      <div class="end-hero ${success ? 'good' : 'bad'}">${success ? '🏁' : '🎲'}</div>
+      ${success ? `<div class="big-stars">${[1, 2, 3].map(k => `<i class="${k <= stars ? 'on' : ''}" style="animation-delay:${k * 0.25}s">★</i>`).join('')}</div>` : `<p class="muted">${goalText(cfg)}</p>`}
+      ${cfg.goal === 'series' ? `<div class="gen-score">${t('series_score', { a: this.series[0], b: this.series[1] })}</div>` : ''}
+      ${res.xp || res.coins ? `<div class="rewards"><div>+${res.xp} <small>XP</small></div>${res.coins ? `<div>+${res.coins} <span class="coin"></span></div>` : ''}</div>` : ''}
+      ${res.levelUps ? `<div class="banner good">⬆ ${t('level_up')} — ${t('level')} ${p.level}</div>` : ''}
+      ${res.rankUp >= 0 ? `<div class="banner gold">${t('new_rank')}: <b>${rankName(res.rankUp)}</b></div>` : ''}`;
+    const v = await modal({ title: success ? t('level_done') : t('level_fail'), body, cls: 'result end',
+      buttons: [{ label: t('to_map'), value: 'map' }, success ? { label: t('next_stage'), value: 'next', cls: 'primary' } : { label: t('retry'), value: 'retry', cls: 'primary' }] });
+    this.destroy();
+    playTab = 'map';
+    if (v === 'retry') new GameCtl(cfg.mode, cfg.bot, cfg).start();
+    else showMain('play');
+  }
+
   async run() {
+    if (this.stage) return this.runStage();
     let opening = true, starterSide = 0;
     while (this.alive) {
       const d = this.match.deal(opening, 0);
@@ -444,16 +602,8 @@ class GameCtl {
         this.gtoast(sp === 0 ? t('you_start') : t('starts', { name: esc(this.players[sp].name) }));
         await sleep(500);
       }
-      // El
-      let res = null;
-      while (this.alive && !res) {
-        this.render();
-        const p = this.match.turn;
-        res = p === 0 ? await this.humanTurn() : await this.botTurn(p);
-      }
-      if (!this.alive) return;
-      this.render();
-      await sleep(900);
+      const res = await this.playHand();
+      if (!res) return;
       await this.announce(res);
       if (!this.alive) return;
       await this.showHandResult(res);
@@ -560,7 +710,7 @@ class GameCtl {
     const m = this.match;
     this.setStatus(t('thinking', { name: esc(this.players[p].name) }));
     this.render();
-    await this.delay('bot');
+    await this.delay('bot', p);
     if (!this.alive) return null;
     if (m.legalMoves(p).length) {
       const mv = chooseMove(m, p, this.diff);
@@ -608,7 +758,8 @@ class GameCtl {
     const gen = s => [0, 1, 2].map(i => `<i class="${i < m.general[s] ? 'on' : ''}"></i>`).join('');
     $('.scoreboard', this.root).innerHTML = `
       <div class="sb-side ${m.turn !== undefined && m.side(m.turn) === 0 ? 'act' : ''}"><span class="sb-name">${esc(this.sideName(0))}</span><b>${m.scores[0]}</b><div class="gen">${gen(0)}</div></div>
-      <div class="sb-mid"><span>${t('game_n', { n: m.gameNo })}</span><small>/101</small>${m.pending ? `<em>${t('pending')}: ${m.pending}</em>` : ''}</div>
+      ${this.stage ? `<div class="sb-mid"><span>${t('stage_n', { n: this.stage.i })}</span>${this.stage.goal === 'series' ? `<small>${this.series[0]} : ${this.series[1]}</small>` : `<small>${this.stage.goal === 'points' ? '≥ ' + this.stage.target : ''}</small>`}</div>`
+        : `<div class="sb-mid"><span>${t('game_n', { n: m.gameNo })}</span><small>/101</small>${m.pending ? `<em>${t('pending')}: ${m.pending}</em>` : ''}</div>`}
       <div class="sb-side ${m.turn !== undefined && m.side(m.turn) === 1 ? 'act' : ''}"><span class="sb-name">${esc(this.sideName(1))}</span><b>${m.scores[1]}</b><div class="gen">${gen(1)}</div></div>`;
     // Koltuklar
     for (let p = 1; p < this.mode; p++) {
@@ -682,9 +833,9 @@ class GameCtl {
     el.remove();
   }
 
-  async showHandResult(r) {
+  async showHandResult(r, stageInfo = null) {
     const m = this.match;
-    if (r.winnerSide === 0) {
+    if (r.winnerSide === 0 && !stageInfo) {
       this.handsWon++;
       if (r.kind === 'blocked') this.events.add('blocked_win');
       if (r.gained >= 50) this.events.add('big_hand');
@@ -718,6 +869,13 @@ class GameCtl {
       gameBanner = `<div class="banner ${ours ? 'good' : 'bad'}">${ours ? (this.mode === 2 ? t('game_won_you') : t('game_won_us')) : t('game_won_them')}${r.generalGained === 2 ? `<small>${t('double_point')}</small>` : ''}</div>`;
     }
     const gen = `<div class="gen-score">${t('general')}: <b>${r.general[0]} : ${r.general[1]}</b></div>`;
+    if (stageInfo) {
+      const ok = stageInfo.ok;
+      const ser = this.stage.goal === 'series' ? `<div class="gen-score">${t('series_score', { a: this.series[0], b: this.series[1] })}</div>` : '';
+      await modal({ cls: 'result', body: `${hero}<div class="banner ${ok ? 'good' : 'bad'}">${ok ? '✓ ' + t('hand_ok') : '✗ ' + t('hand_no')}</div><div class="res-rows">${showSides.map(sideBlock).join('')}</div>${ser}`,
+        buttons: [{ label: t('continue'), value: true, cls: 'primary' }] });
+      return;
+    }
     await modal({
       cls: 'result',
       body: `${hero}${gameBanner}<div class="res-rows">${showSides.map(sideBlock).join('')}</div><div class="pbars">${bar(0)}${bar(1)}</div>${gen}`,

@@ -38,6 +38,7 @@ Google Play'e yüklemeden önce gizli bir anahtar oluşturulup GitHub Secrets'a 
 
 ## Yol haritası
 1. ✅ Faz 1 — Açılış, giriş (demo), menü, Klassik 101 (1v1, 2v2), botlar, temalar, 4 dil, APK
+   ✅ v0.3 — Kariyer haritası: sonsuz aşamalar, adil ve birden çok yolla kazanılabilir eller, yıldızlar
 2. Faz 2 — Kariyer dengelemesi, 4 kişilik modun seviyeyle açılması, daha fazla başarı
 3. Faz 3 — Firebase: Google/Facebook girişi, tekil takma ad; aynı Wi‑Fi'da çok oyunculu
 4. Faz 4 — Telefon modu, internet üzerinden online, gerçek para ile satın alma
