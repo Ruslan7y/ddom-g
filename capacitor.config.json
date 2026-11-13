@@ -1,0 +1,7 @@
+{
+  "appId": "com.realtable.domino101",
+  "appName": "Domino 101",
+  "webDir": "www",
+  "backgroundColor": "#0b3d2e",
+  "android": { "allowMixedContent": false }
+}

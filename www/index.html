@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#062a1e">
+  <title>Domino 101: Real Table</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Ortak SVG tanımları (taş gradyanları) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="gIvory" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fffdf5"/><stop offset="0.55" stop-color="#f6efdd"/><stop offset="1" stop-color="#e2d6bb"/>
+      </linearGradient>
+      <linearGradient id="gBlack" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#3a3a42"/><stop offset="0.5" stop-color="#22222a"/><stop offset="1" stop-color="#121216"/>
+      </linearGradient>
+      <linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffe9a8"/><stop offset="0.5" stop-color="#d4a73a"/><stop offset="1" stop-color="#9a7419"/>
+      </linearGradient>
+      <linearGradient id="gBack" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8b2a2a"/><stop offset="1" stop-color="#4e1212"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div id="splash"></div>
+  <div id="view" class="screen"></div>
+  <script src="js/vendor/capacitor.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
