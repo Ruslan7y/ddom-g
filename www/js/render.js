@@ -137,7 +137,7 @@ export function renderBoard(svgEl, board, W, H, opts = {}) {
   }
   let html = '';
   for (const it of items) {
-    const cls = it.id === opts.newId ? 'new' : '';
+    const cls = (it.id === opts.newId ? 'new ' : '') + (it.id === opts.lastId ? 'last' : '');
     html += tileGroup(it, cls);
   }
   for (const g of ghosts) {

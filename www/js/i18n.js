@@ -9,6 +9,7 @@ export const LANGS = [
 const S = {
   tr: {
     subtitle: 'Real Table',
+    finished: '{name} bitirdi!', finished_you: 'Bitirdin!', tie_title: 'Eşitlik',
     welcome: 'Hoş geldin',
     welcome_sub: 'Gerçek domino masasına otur',
     login_guest: 'Misafir olarak devam et',
@@ -116,6 +117,7 @@ const S = {
   },
   az: {
     subtitle: 'Real Table',
+    finished: '{name} bitirdi!', finished_you: 'Bitirdin!', tie_title: 'Bərabərlik',
     welcome: 'Xoş gəldin',
     welcome_sub: 'Əsl domino masasına otur',
     login_guest: 'Qonaq kimi davam et',
@@ -223,6 +225,7 @@ const S = {
   },
   en: {
     subtitle: 'Real Table',
+    finished: '{name} is out!', finished_you: 'You are out!', tie_title: 'Tie',
     welcome: 'Welcome',
     welcome_sub: 'Take a seat at a real domino table',
     login_guest: 'Continue as guest',
@@ -330,6 +333,7 @@ const S = {
   },
   ru: {
     subtitle: 'Real Table',
+    finished: '{name} закончил(а)!', finished_you: 'Ты закончил!', tie_title: 'Ничья',
     welcome: 'Добро пожаловать',
     welcome_sub: 'Садись за настоящий доминошный стол',
     login_guest: 'Продолжить как гость',

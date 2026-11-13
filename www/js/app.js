@@ -8,7 +8,7 @@ import { renderBoard, tileSVG, backSVG, ghostFor, boardMetrics } from './render.
 import { runSplash } from './splash.js';
 import { sfx, vibrate } from './sound.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -350,7 +350,9 @@ class GameCtl {
   }
   sideName(s) {
     if (this.mode === 2) return s === 0 ? t('you') : this.players[1].name;
-    return s === 0 ? t('us') : t('them');
+    // Takım adı: iki oyuncunun baş harfleri (örn. C&S)
+    const ini = n => ([...String(n).trim()][0] || '?').toLocaleUpperCase();
+    return ini(this.players[s].name) + '&' + ini(this.players[s + 2].name);
   }
   pname(p) { return p === 0 ? t('you') : this.players[p].name; }
 
@@ -417,8 +419,9 @@ class GameCtl {
 
   delay(kind = 'bot') {
     const fast = P().botSpeed === 'fast';
-    const base = kind === 'bot' ? (fast ? 380 : 850) : (fast ? 300 : 600);
-    return sleep(base + Math.random() * base * 0.6);
+    // Normal: bot 5–6 sn düşünür; Hızlı: 2–2.5 sn
+    const [lo, hi] = kind === 'bot' ? (fast ? [2000, 2500] : [5000, 6000]) : (fast ? [800, 1000] : [1500, 1800]);
+    return sleep(lo + Math.random() * (hi - lo));
   }
 
   // ---- Akış
@@ -426,7 +429,7 @@ class GameCtl {
     let opening = true, starterSide = 0;
     while (this.alive) {
       const d = this.match.deal(opening, 0);
-      this.selected = null; this.newId = null;
+      this.selected = null; this.newId = null; this.lastId = null;
       this.render();
       await this.showRedeals(d.redeals);
       if (!this.alive) return;
@@ -450,7 +453,9 @@ class GameCtl {
       }
       if (!this.alive) return;
       this.render();
-      await sleep(700);
+      await sleep(900);
+      await this.announce(res);
+      if (!this.alive) return;
       await this.showHandResult(res);
       if (!this.alive) return;
       if (this.match.over) { await this.showMatchEnd(res); return; }
@@ -520,7 +525,7 @@ class GameCtl {
   async humanPlay(id, side) {
     const r = this.match.play(0, id, side);
     this.selected = null;
-    this.newId = id;
+    this.newId = id; this.lastId = id;
     this.fresh = null;
     sfx.place(); vibrate(18);
     const w = this.waiting; this.waiting = null;
@@ -560,8 +565,9 @@ class GameCtl {
     if (m.legalMoves(p).length) {
       const mv = chooseMove(m, p, this.diff);
       const r = m.play(p, mv.id, mv.side);
-      this.newId = mv.id;
+      this.newId = mv.id; this.lastId = mv.id;
       sfx.place();
+      this.bubble(p, `<span class="bub-tile">${tileSVG(mv.id)}</span>`, 2600);
       return r;
     }
     if (m.canDraw(p)) {
@@ -573,17 +579,18 @@ class GameCtl {
       return null;
     }
     sfx.pass();
-    this.bubble(p, t('pass'));
+    this.bubble(p, t('pass'), 2200);
     return m.pass(p);
   }
 
-  bubble(p, txt) {
+  bubble(p, html, ms = 1800) {
     const el = p === 0 ? $('.me-status', this.root) : $(`.seat[data-p="${p}"] .bubble`, this.root);
     if (!el) return;
-    if (p === 0) { this.setStatus(txt); return; }
-    el.textContent = txt;
+    if (p === 0) { this.setStatus(html); return; }
+    el.innerHTML = html;
     el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 1300);
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), ms);
   }
 
   setStatus(txt, me = false) {
@@ -629,7 +636,7 @@ class GameCtl {
       const sides = ends[0] === ends[1] ? ['L', 'R'] : opts.map(o => o.side);
       for (const sd of sides) ghosts.push({ side: sd, item: ghostFor(m.board, limit, this.selected, sd, sd === 'L' ? ends[0] : ends[1]), label: '⬇', cls: 'g' + sd });
     }
-    renderBoard(svg, m.board, W, H, { ghosts, newId: this.newId });
+    renderBoard(svg, m.board, W, H, { ghosts, newId: this.newId, lastId: this.lastId });
     this.newId = null;
     // El
     this.renderHand();
@@ -657,28 +664,50 @@ class GameCtl {
   }
 
   // ---- Sonuçlar
+  /** Ekranın ortasında sade duyuru: "X bitirdi!" / "Oyun bağlandı!" */
+  async announce(r) {
+    const host = $('.table-area', this.root);
+    if (!host) return;
+    let txt;
+    if (r.kind === 'domino') txt = r.player === 0 ? t('finished_you') : t('finished', { name: esc(this.players[r.player].name) });
+    else txt = t('hand_blocked');
+    const el = document.createElement('div');
+    el.className = 'announce';
+    el.innerHTML = `${r.kind === 'domino' ? avatarHTML(this.players[r.player].avatar) : '<div class="ann-ic">🔒</div>'}<div class="ann-txt">${txt}</div>`;
+    host.appendChild(el);
+    r.winnerSide === 0 ? sfx.win() : sfx.pass();
+    await sleep(2300);
+    el.classList.add('out');
+    await sleep(300);
+    el.remove();
+  }
+
   async showHandResult(r) {
     const m = this.match;
-    const mySide = 0;
-    if (r.winnerSide === mySide) {
+    if (r.winnerSide === 0) {
       this.handsWon++;
       if (r.kind === 'blocked') this.events.add('blocked_win');
       if (r.gained >= 50) this.events.add('big_hand');
     }
-    let title;
-    if (r.kind === 'domino') title = r.player === 0 ? t('hand_domino_you') : t('hand_domino', { name: esc(this.players[r.player].name) });
-    else title = t('hand_blocked');
-    const rows = this.players.map((pl, p) => `
-      <div class="res-row ${m.side(p) === 0 ? 'mine' : ''}">
-        ${avatarHTML(pl.avatar, 'xs')}<b>${esc(p === 0 ? t('you') : pl.name)}</b>
-        <div class="mini-hand">${r.hands[p].map(id => tileSVG(id)).join('') || '<span class="muted">—</span>'}</div>
-        <span class="val">${r.handValues[p]}</span>
-      </div>`).join('');
-    let summary = '';
-    if (r.tie) summary = `<p class="res-big">${t('hand_tie', { n: r.remaining[0] })}</p>`;
-    else {
-      const pend = r.pendingBefore ? ` <small>(${t('pending_added', { n: r.pendingBefore })})</small>` : '';
-      summary = `<p class="res-big ${r.winnerSide === 0 ? 'good' : 'bad'}">${esc(this.sideName(r.winnerSide))}: +${r.gained} ${t('points')}${pend}</p>`;
+    // Sadece kaybedenlerin taşları (eşitlikte iki taraf da)
+    const showSides = r.tie ? [0, 1] : [1 - r.winnerSide];
+    const sideBlock = s => {
+      const rows = m.sidePlayers(s).map(p => `
+        <div class="res-row">
+          ${avatarHTML(this.players[p].avatar, 'xs')}<b>${esc(p === 0 ? t('you') : this.players[p].name)}</b>
+          <div class="mini-hand">${r.hands[p].map(id => tileSVG(id)).join('') || '<span class="muted">—</span>'}</div>
+          <span class="val">${r.handValues[p]}</span>
+        </div>`).join('');
+      const head = this.mode === 4 ? `<div class="res-team-h"><span>${esc(this.sideName(s))}</span><b>${t('total')}: ${r.remaining[s]}</b></div>` : '';
+      return `<div class="res-side">${head}${rows}</div>`;
+    };
+    let hero;
+    if (r.tie) {
+      hero = `<div class="res-hero tie"><div class="rh-team">${t('tie_title')}</div><div class="rh-pts">${r.remaining[0]}</div><div class="rh-sub">${t('hand_tie', { n: r.remaining[0] })}</div></div>`;
+    } else {
+      const ours = r.winnerSide === 0;
+      const pend = r.pendingBefore ? `<div class="rh-sub">${t('pending_added', { n: r.pendingBefore })}</div>` : '';
+      hero = `<div class="res-hero ${ours ? 'good' : 'bad'}"><div class="rh-team">${esc(this.sideName(r.winnerSide))}</div><div class="rh-pts">+${r.gained}</div>${pend}</div>`;
     }
     const bar = s => `<div class="pbar"><span>${esc(this.sideName(s))}</span><div class="track"><i style="width:${Math.min(100, (r.scores[s] / 101) * 100)}%"></i></div><b>${r.scores[s]}</b></div>`;
     let gameBanner = '';
@@ -690,8 +719,8 @@ class GameCtl {
     }
     const gen = `<div class="gen-score">${t('general')}: <b>${r.general[0]} : ${r.general[1]}</b></div>`;
     await modal({
-      title, cls: 'result',
-      body: `${gameBanner}${summary}<div class="res-rows">${rows}</div>${r.kind === 'blocked' ? `<p class="muted small">${t('total')}: ${esc(this.sideName(0))} ${r.remaining[0]} · ${esc(this.sideName(1))} ${r.remaining[1]}</p>` : ''}<div class="pbars">${bar(0)}${bar(1)}</div>${gen}`,
+      cls: 'result',
+      body: `${hero}${gameBanner}<div class="res-rows">${showSides.map(sideBlock).join('')}</div><div class="pbars">${bar(0)}${bar(1)}</div>${gen}`,
       buttons: [{ label: this.match.over ? t('continue') : t('next_hand'), value: true, cls: 'primary' }],
     });
   }
